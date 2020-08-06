@@ -14,7 +14,7 @@ using namespace std;
 /* Function delcerations */
 std::vector<uint16_t> temperatureConversion(std::vector<double> Temp_F);
 std::vector<uint64_t> pdf(std::vector<uint16_t> Data, int byteRange);
-std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N);
+std::vector<uint8_t> FELACS(std::vector<uint16_t> Data, int blocksize, int N, int dataColumns);
 double entropy(std::vector<uint64_t> Data);
 int get_TotalFiles(char* filePath);
 string* get_Filenames(char* filePath, int totalFiles);
@@ -37,10 +37,11 @@ int main()
     string outputPath = "";
     std::vector<double> CRforPrinting;
     /* Read files from filepath */
-    char filePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++/Data_Input_Compression";
+    char filePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
     int totalFiles = get_TotalFiles(filePath);
     /* Variables for compression */
     int blockSize = 265;
+    int dataColumns = 48;
 
 
     fileNames = get_Filenames(filePath, totalFiles);
@@ -65,7 +66,7 @@ int main()
         os_fileName.str("");
         os_fileName.clear();
         outputPath = "";
-        os_filePath << "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++/Data_Compressed/Compressed_" << fileNames[i];
+        os_filePath << "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed/Compressed_" << fileNames[i];
         outputPath =  os_filePath.str();
         os_fileName << fileNames[i] << "_ofile";
         cout << "created: Compressed_" << fileNames[i] << " | in: " << outputPath << endl;
@@ -101,9 +102,6 @@ int main()
                 Data_int16.push_back(readInt16);
 
                 Data_uint16.push_back(uint16_t(int32_t(readInt16) + int32_t(pow(2,15))));
-//                if(tempCount > 28300 && tempCount < 28500)
-//                cout << tempCount << "      |       " << readInt16 << "     |       " << Data_uint16.at(tempCount) << endl;
-//                ++ tempCount;
             }
             Data_int16.pop_back();  // delete last double occurring element
             Data_uint16.pop_back(); // delete last double occurring element
@@ -116,7 +114,11 @@ int main()
             Data_entropy = entropy(Data_pdf);
             cout << "Entropy: " << Data_entropy << endl;
             /* compress data file using FELACS algorithm */
-            FELACS_Compressed = FELACS(Data_uint16, blockSize, 16);
+             /* save parts of size 265 x dataColumns and compress it */
+            for(int j = 0; j < Data_int16.size()/(dataColumns * blockSize); ++j)
+            {
+            cout << "size:" <<  Data_uint16.size() << endl;
+            FELACS_Compressed = FELACS(Data_uint16, blockSize, 16, dataColumns);
             /* Calculate compression ratio */
             Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16.size()*2)))*100;
             cout << "Compression Ration: " << Data_CR << "%" << endl;
@@ -130,6 +132,7 @@ int main()
             for(uint64_t i = 0 ; i < FELACS_Compressed.size() ; ++i)
             {
                 outputFile.write(reinterpret_cast<const char *>(&FELACS_Compressed[i]), sizeof(FELACS_Compressed[i]));
+            }
             }
             outputFile.close();
         }
@@ -148,7 +151,13 @@ int main()
             Data_pdf = pdf(Data_uint16, 16);
             Data_entropy = entropy(Data_pdf);
             cout << "Entropy: " << Data_entropy << endl;
-            FELACS_Compressed = FELACS(Data_uint16, blockSize, 16);
+
+
+            /* save parts of size 265 x dataColumns and compress it */
+            for(int j = 0; j < Data_int16.size()/(dataColumns * blockSize); ++j)
+            {
+                cout << "size:" <<  Data_uint16.size() << endl;
+            FELACS_Compressed = FELACS(Data_uint16, blockSize, 16, dataColumns);
             Data_CR = (1 - (double(FELACS_Compressed.size()*sizeof(FELACS_Compressed))) / (double(Data_uint16.size()*sizeof(Data_uint16))))*100;
             cout << "Compression Ration: " << Data_CR << "%" << endl;
             cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
@@ -160,6 +169,7 @@ int main()
             for(uint64_t i = 0 ; i < FELACS_Compressed.size() ; ++i)
             {
                 outputFile.write(reinterpret_cast<const char *>(&FELACS_Compressed[i]), sizeof(FELACS_Compressed[i]));
+            }
             }
             outputFile.close();
         }
@@ -227,8 +237,8 @@ string* get_Filenames(char* filePath, int totalFiles)
     return matrix;
 }
 
-
-std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N)
+/* this function should take a 265 x dataColumns long vector and compress it */
+std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, int dataColumns)
 {
     int totalBlocks = int (floor( double (Data.size()) / blocksize));
     std::vector<uint16_t> block(blocksize);
@@ -241,7 +251,6 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N)
     os_filePath << "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++/Matlab_Simulations/Distribution_of_Si.txt";
     outputPath =  os_filePath.str();
     std::ofstream outputFile(outputPath, std::ios::out | std::ofstream::binary | std::ios_base::app);
-
     std::vector<int> si_Occuring(N); // for testing purposes!!
     uint16_t firstSample;
     int32_t omega;
@@ -254,13 +263,13 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N)
     uint16_t ai;
     uint8_t lengthai;
     int extraBits = 0;
-    // loop through all blocks
-    for(int i = 0 ; i < totalBlocks ; ++i)
+    // loop through all dataColumns
+    for(int i = 0 ; i < dataColumns ; ++i)
     {
         // split data in blocks of size 264 samples (e.g. 528 bytes)
         for(int j = 0 ; j < blocksize ; ++j)
         {
-            block.at(j) = Data.at(j + i*blocksize);
+            block.at(j) = Data.at(j + i*dataColumns);
         }
         // initialize first sample
         firstSample = block.at(0);
