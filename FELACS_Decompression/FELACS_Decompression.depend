@@ -1,0 +1,42 @@
+# depslib dependency file v1.0
+1589206068 source:c:\users\basti\onedrive\thesis\2_compression_algorithms\algorithms\c++\codeblocks\felacs_decompression\felacs_decompression\main.cpp
+	<fstream>
+	<vector>
+	<iterator>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+	<numeric>
+
+1589814493 source:c:\users\basti\onedrive\thesis\2_compression_algorithms\c++\codeblocks\felacs_decompression\main.cpp
+	<fstream>
+	<vector>
+	<iterator>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+	<numeric>
+	"dirent.h"
+
+1596542702 source:c:\users\user\onedrive\thesis\2_compression_algorithms\c++\codeblocks\felacs_decompression\main.cpp
+	<fstream>
+	<vector>
+	<iterator>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+	<numeric>
+	"dirent.h"
+

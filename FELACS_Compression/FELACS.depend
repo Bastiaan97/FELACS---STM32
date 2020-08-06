@@ -1,0 +1,66 @@
+# depslib dependency file v1.0
+1588853764 source:c:\users\basti\onedrive\thesis\2_compression_algorithms\algorithms\c++\felacs\main.cpp
+	<fstream>
+	<vector>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+
+1589189499 source:c:\users\basti\onedrive\thesis\2_compression_algorithms\algorithms\c++\codeblocks\felacs\main.cpp
+	<fstream>
+	<vector>
+	<iterator>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+	<numeric>
+
+1589189499 source:c:\users\basti\onedrive\thesis\2_compression_algorithms\algorithms\c++\codeblocks\felacs_compression\main.cpp
+	<fstream>
+	<vector>
+	<iterator>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+	<numeric>
+
+1589814970 source:c:\users\basti\onedrive\thesis\2_compression_algorithms\c++\codeblocks\felacs_compression\main.cpp
+	<fstream>
+	<vector>
+	<iterator>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+	<numeric>
+	"dirent.h"
+
+1596613657 source:c:\users\user\onedrive\thesis\2_compression_algorithms\c++\codeblocks\felacs_compression\main.cpp
+	<fstream>
+	<vector>
+	<iterator>
+	<cstdlib>
+	<iostream>
+	<math.h>
+	<tgmath.h>
+	<sstream>
+	<iomanip>
+	<string>
+	<numeric>
+	"dirent.h"
+
