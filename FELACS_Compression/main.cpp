@@ -22,7 +22,7 @@ string* get_Filenames(char* filePath, int totalFiles);
 
 int main()
 {
-   /* Variables for reading files */
+    /* Variables for reading files */
     double readDouble;
     int16_t readInt16;
     uint16_t readUint16;
@@ -54,11 +54,12 @@ int main()
         outputFileName = "";
         outputPath = "";
         std::vector<uint16_t> Data_uint16;
+        std::vector<uint16_t> Data_uint16_temp;
         std::vector<int16_t> Data_int16;
         std::vector<double> Data_double;
         std::vector<uint64_t> Data_pdf;
         std::vector<uint8_t> FELACS_Compressed;
-
+        int offset = 0;
         double Data_entropy;
         double Data_CR;
         os_filePath.str("");
@@ -114,62 +115,34 @@ int main()
             Data_entropy = entropy(Data_pdf);
             cout << "Entropy: " << Data_entropy << endl;
             /* compress data file using FELACS algorithm */
-             /* save parts of size 265 x dataColumns and compress it */
-            for(int j = 0; j < Data_int16.size()/(dataColumns * blockSize); ++j)
-            {
-            cout << "size:" <<  Data_uint16.size() << endl;
-            FELACS_Compressed = FELACS(Data_uint16, blockSize, 16, dataColumns);
-            /* Calculate compression ratio */
-            Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16.size()*2)))*100;
-            cout << "Compression Ration: " << Data_CR << "%" << endl;
-            cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
-            /* Calculate adjusted compression ratio */
-            Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16.size()*2 - (Data_uint16.size() % blockSize)*2)))*100;
-            cout << "Correct compression ratio: " << Data_CR << "%" << endl;
-            CRforPrinting.push_back(Data_CR);
-            cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
-            // step 5
-            for(uint64_t i = 0 ; i < FELACS_Compressed.size() ; ++i)
-            {
-                outputFile.write(reinterpret_cast<const char *>(&FELACS_Compressed[i]), sizeof(FELACS_Compressed[i]));
-            }
-            }
-            outputFile.close();
-        }
-        else if(inputFileName.find("uint16") != std::string::npos || inputFileName.find("Uint16") != std::string::npos)
-        {
-            while (!inputFile.eof())
-            {
-                readUint16 = 0;
-                readUint16 |= (unsigned char)inputFile.get();
-                readUint16 |= inputFile.get() << 8;
-                Data_uint16.push_back(uint32_t(readUint16));
-            }
-            Data_uint16.pop_back();  // delete last double occurring element
-            inputFile.close();
-            std::cout << "File name: " << inputFileName << endl;
-            Data_pdf = pdf(Data_uint16, 16);
-            Data_entropy = entropy(Data_pdf);
-            cout << "Entropy: " << Data_entropy << endl;
-
-
             /* save parts of size 265 x dataColumns and compress it */
             for(int j = 0; j < Data_int16.size()/(dataColumns * blockSize); ++j)
             {
-                cout << "size:" <<  Data_uint16.size() << endl;
-            FELACS_Compressed = FELACS(Data_uint16, blockSize, 16, dataColumns);
-            Data_CR = (1 - (double(FELACS_Compressed.size()*sizeof(FELACS_Compressed))) / (double(Data_uint16.size()*sizeof(Data_uint16))))*100;
-            cout << "Compression Ration: " << Data_CR << "%" << endl;
-            cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
-            /* Calculate adjusted compression ratio */
-            Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16.size()*2 - (Data_uint16.size() % blockSize)*2)))*100;
-            cout << "Correct compression ratio: " << Data_CR << "%" << endl;
-            cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
-            // step 5
-            for(uint64_t i = 0 ; i < FELACS_Compressed.size() ; ++i)
-            {
-                outputFile.write(reinterpret_cast<const char *>(&FELACS_Compressed[i]), sizeof(FELACS_Compressed[i]));
-            }
+                offset = dataColumns * blockSize;
+                for(int k = 0; k < (dataColumns * blockSize); k++)
+                {
+                    Data_uint16_temp.push_back(Data_int16.at(k + j*offset));
+                }
+                FELACS_Compressed = FELACS(Data_uint16_temp, blockSize, 16, dataColumns);
+                /* Calculate compression ratio */
+                Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16_temp.size()*2)))*100;
+                cout << "Compression Ration: " << Data_CR << "%" << endl;
+                cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
+                /* Calculate adjusted compression ratio */
+                Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16_temp.size()*2 - (Data_uint16_temp.size() % blockSize)*2)))*100;
+                cout << "Correct compression ratio: " << Data_CR << "%" << endl;
+                CRforPrinting.push_back(Data_CR);
+                cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
+                // step 5
+                for(uint64_t i = 0 ; i < FELACS_Compressed.size() ; ++i)
+                {
+                    outputFile.write(reinterpret_cast<const char *>(&FELACS_Compressed[i]), sizeof(FELACS_Compressed[i]));
+                }
+                while (!Data_uint16_temp.empty())
+                  {
+                     Data_uint16_temp.pop_back();
+                  }
+                cout << "iteration: " << j << endl;
             }
             outputFile.close();
         }
@@ -416,10 +389,10 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
         }
         if((filledBits % 8) != 0)
         {
-            cout << ((filledBits + 8 - (filledBits % 8))/ 8) << endl;
+//            cout << ((filledBits + 8 - (filledBits % 8))/ 8) << endl;
         }
         else
-        cout << (filledBits / 8) << endl;
+//            cout << (filledBits / 8) << endl;
         temp = 0;
     }
 

@@ -19,8 +19,8 @@ std::vector<uint16_t> FELACS_Decompress(std::vector<uint8_t> Data_Compressed, in
 
 int main()
 {
-    char originalFilePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++/Data_Input_Compression";
-    char compressedFilePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++/Data_Compressed";
+    char originalFilePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
+    char compressedFilePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed";
     int totalFilesCompressed = get_TotalFiles(compressedFilePath);
     int totalFilesOriginal = get_TotalFiles(originalFilePath);
     if(totalFilesCompressed == totalFilesOriginal)
