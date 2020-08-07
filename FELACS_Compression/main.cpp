@@ -22,10 +22,13 @@ string* get_Filenames(char* filePath, int totalFiles);
 
 int main()
 {
+    /* Only variables which should be changed */
+    int blockSize = 265;
+    int dataColumns = 48;
+
     /* Variables for reading files */
-    double readDouble;
+//    double readDouble;
     int16_t readInt16;
-    uint16_t readUint16;
 
     /* Variables for creating output files */
     ostringstream os_filePath;
@@ -40,16 +43,14 @@ int main()
 //    char filePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
     char filePath[] = "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
     int totalFiles = get_TotalFiles(filePath);
-    /* Variables for compression */
-    int blockSize = 265;
-    int dataColumns = 48;
 
-
+    /* get all filenames from the given filepath */
     fileNames = get_Filenames(filePath, totalFiles);
-    /* There seems to be an offset of 2 in the read files */
+    /* Loop through all files to compress it,
+       there seems to be an offset of 2 in the read files */
     for(int i = 2 ; i < totalFiles ; ++i)
     {
-        /* Create vectors to store all data types in */
+        /* Initialization of variables needed for compression*/
         inputFileName = "";
         inputPath = "";
         outputFileName = "";
@@ -61,7 +62,7 @@ int main()
         std::vector<uint64_t> Data_pdf;
         std::vector<uint8_t> FELACS_Compressed;
         int offset = 0;
-        double Data_entropy;
+//        double Data_entropy;
         double Data_CR;
         os_filePath.str("");
         os_filePath.clear();
@@ -95,7 +96,7 @@ int main()
 
         if (inputFileName.find("int16") != std::string::npos || inputFileName.find("Int16") != std::string::npos)
         {
-            int tempCount = 0;
+//            int tempCount = 0;
             /* read data format int16, store this value and convert to data range of uint16 */
             while (!inputFile.eof())
             {
@@ -118,7 +119,7 @@ int main()
 //            cout << "Entropy: " << Data_entropy << endl;
             /* compress data file using FELACS algorithm */
             /* save parts of size 265 x dataColumns and compress it */
-            for(int j = 0; j < Data_uint16.size()/(dataColumns * blockSize); ++j)
+            for(uint32_t j = 0; j < uint32_t(Data_uint16.size())/uint32_t(dataColumns * blockSize); ++j)
             {
                 offset = dataColumns * blockSize;
                 for(int k = 0; k < (dataColumns * blockSize); k++)
@@ -220,25 +221,20 @@ string* get_Filenames(char* filePath, int totalFiles)
 /* this function should take a 265 x dataColumns long vector and compress it */
 std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, int dataColumns)
 {
-    int totalBlocks = int (floor( double (Data.size()) / blocksize));
+//    int totalBlocks = int (floor( double (Data.size()) / blocksize));
     std::vector<uint16_t> block(blocksize);
     std::vector<int32_t> diffBlock(blocksize-1);
     std::vector<uint32_t> diffBlockConv(blocksize-1);
     std::vector<uint8_t> compressed;
     /* Debugging purposes only */
-    ostringstream os_filePath;
-    string outputPath = "";
-    os_filePath << "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++/Matlab_Simulations/Distribution_of_Si.txt";
-    outputPath =  os_filePath.str();
-    std::ofstream outputFile(outputPath, std::ios::out | std::ofstream::binary | std::ios_base::app);
     std::vector<int> si_Occuring(N); // for testing purposes!!
     uint16_t firstSample;
     int32_t omega;
     uint16_t k;
     uint16_t k_optimal;
-    uint64_t D;
+    uint32_t D;
     uint8_t temp;
-    uint64_t filledBits;
+    uint32_t filledBits;
     int si;
     uint16_t ai;
     uint8_t lengthai;
@@ -247,7 +243,7 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
     for(int i = 0 ; i < dataColumns ; ++i)
     {
         // take only the values from the i column
-        for(int j = 0 ; j < blocksize ; ++j)
+        for(int32_t j = 0 ; j < blocksize ; ++j)
         {
             block.at(j) = Data.at(i + j*dataColumns);
 //            cout << block.at(j) << endl;
@@ -256,12 +252,12 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
         firstSample = block.at(0);
 //        cout << "firstsample: " << firstSample << endl;
         // calculate differentiated values
-        for(int j = 0 ; j < blocksize - 1 ; ++j)
+        for(int32_t j = 0 ; j < blocksize - 1 ; ++j)
         {
             diffBlock.at(j) = int32_t(int32_t(block.at(j + 1)) - int32_t(block.at(j)));
         }
         // use mapping function to only have positive values
-        for(uint64_t j = 0; j < diffBlock.size() ; ++j)
+        for(int32_t j = 0; j < int32_t(diffBlock.size()) ; ++j)
         {
             omega = int32_t(std::min(int32_t(block.at(j)), int32_t(pow(2,N) - 1 - block.at(j))));
 //             if(j + i*blocksize > 28300 && j + i*blocksize < 28500)
@@ -283,7 +279,7 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
         }
         // calculate optimum value of k using the value D
         D = 0;
-        for(uint64_t j = 0 ; j < diffBlockConv.size() ; ++j)
+        for(uint32_t j = 0 ; j < diffBlockConv.size() ; ++j)
         {
             D += diffBlockConv.at(j);
         }
@@ -312,7 +308,7 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
         temp = k_optimal;
         filledBits += 3;
         // save rest of the data points in structure << si, ai >>
-        for(uint64_t j = 0 ; j < diffBlockConv.size() ; ++j)
+        for(int32_t j = 0 ; j < int32_t(diffBlockConv.size()) ; ++j)
         {
             // log(0) will give an error, thus diffBlockConv should be > 0.
             // next calculate the value of si and store these in compressed
@@ -323,7 +319,7 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
                 {
                     si = 1;
                 }
-                for(int k = 0; k < si ; k++)
+                for(int32_t k = 0; k < si ; k++)
                 {
                     // if si = 3 insert '001', si = 1 insert '1', only '1' has to be inserted
                     // '0' are already intialized
@@ -403,13 +399,11 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
             temp = 0;
     }
 
-    for(int k = 0 ; k < si_Occuring.size(); ++k)
+    for(uint32_t k = 0 ; k < si_Occuring.size(); ++k)
     {
-        outputFile.write(reinterpret_cast<const char *>(&si_Occuring[k]), sizeof(si_Occuring[k]));
         //cout << k << " | " << si_Occuring.at(k) << endl;
         cout << si_Occuring.at(k) << endl;
     }
-    outputFile.close();
     std::cerr << "Out of Felacs" << endl;
     cout << "extra-bits " << extraBits << endl;
     return compressed;
