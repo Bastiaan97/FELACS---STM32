@@ -36,8 +36,9 @@ int main()
     string outputFileName = "";
     string outputPath = "";
     std::vector<double> CRforPrinting;
-    /* Read files from filepath */
-    char filePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
+    /* Read files from filepath , select laptop or desktop*/
+//    char filePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
+    char filePath[] = "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
     int totalFiles = get_TotalFiles(filePath);
     /* Variables for compression */
     int blockSize = 265;
@@ -67,7 +68,8 @@ int main()
         os_fileName.str("");
         os_fileName.clear();
         outputPath = "";
-        os_filePath << "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed/Compressed_" << fileNames[i];
+//        os_filePath << "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed/Compressed_" << fileNames[i];
+        os_filePath << "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed/Compressed_" << fileNames[i];
         outputPath =  os_filePath.str();
         os_fileName << fileNames[i] << "_ofile";
         cout << "created: Compressed_" << fileNames[i] << " | in: " << outputPath << endl;
@@ -100,8 +102,8 @@ int main()
                 readInt16 = 0;
                 readInt16 |= (unsigned char)inputFile.get();
                 readInt16 |= inputFile.get() << 8;
-                Data_int16.push_back(readInt16);
 
+                Data_int16.push_back(readInt16);
                 Data_uint16.push_back(uint16_t(int32_t(readInt16) + int32_t(pow(2,15))));
             }
             Data_int16.pop_back();  // delete last double occurring element
@@ -110,56 +112,61 @@ int main()
             /* display filename being compressed */
             std::cout << "File name: " << inputFileName << endl;
             /* calculate probability distribution function */
-            Data_pdf = pdf(Data_uint16, 16);
+//            Data_pdf = pdf(Data_uint16, 16);
             /* calculate and display source entropy */
-            Data_entropy = entropy(Data_pdf);
-            cout << "Entropy: " << Data_entropy << endl;
+//            Data_entropy = entropy(Data_pdf);
+//            cout << "Entropy: " << Data_entropy << endl;
             /* compress data file using FELACS algorithm */
             /* save parts of size 265 x dataColumns and compress it */
-            for(int j = 0; j < Data_int16.size()/(dataColumns * blockSize); ++j)
+            for(int j = 0; j < Data_uint16.size()/(dataColumns * blockSize); ++j)
             {
                 offset = dataColumns * blockSize;
                 for(int k = 0; k < (dataColumns * blockSize); k++)
                 {
-                    Data_uint16_temp.push_back(Data_int16.at(k + j*offset));
+                    Data_uint16_temp.push_back(Data_uint16.at(k + j*offset));
                 }
                 FELACS_Compressed = FELACS(Data_uint16_temp, blockSize, 16, dataColumns);
                 /* Calculate compression ratio */
                 Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16_temp.size()*2)))*100;
-                cout << "Compression Ration: " << Data_CR << "%" << endl;
-                cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
+//                cout << "Compression Ration: " << Data_CR << "%" << endl;
+//                cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
                 /* Calculate adjusted compression ratio */
                 Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16_temp.size()*2 - (Data_uint16_temp.size() % blockSize)*2)))*100;
-                cout << "Correct compression ratio: " << Data_CR << "%" << endl;
+//                cout << "Correct compression ratio: " << Data_CR << "%" << endl;
                 CRforPrinting.push_back(Data_CR);
-                cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
+//                cout << "bits per sample: " << (16 * ((100 - Data_CR)/100)) << endl;
                 // step 5
-                for(uint64_t i = 0 ; i < FELACS_Compressed.size() ; ++i)
+                for(uint64_t k = 0 ; k < FELACS_Compressed.size() ; ++k)
                 {
-                    outputFile.write(reinterpret_cast<const char *>(&FELACS_Compressed[i]), sizeof(FELACS_Compressed[i]));
+                    outputFile.write(reinterpret_cast<const char *>(&FELACS_Compressed[k]), sizeof(FELACS_Compressed[k]));
                 }
                 while (!Data_uint16_temp.empty())
-                  {
-                     Data_uint16_temp.pop_back();
-                  }
+                {
+                    Data_uint16_temp.pop_back();
+                }
+                while(!FELACS_Compressed.empty())
+                {
+                    FELACS_Compressed.pop_back();
+                }
                 cout << "iteration: " << j << endl;
             }
             outputFile.close();
         }
         else
         {
-            std::cout << "File name: " << inputFileName << "is not supported, add int16 or uint16 to the name to indicate fill type"  << '\n';
+            std::cout << "File name: " << inputFileName << "is not supported, add int16 to the name to indicate fill type"  << '\n';
             outputFile.close();
         }
     }
     /* printing a list of the compression rates for data analysis */
     cout << "List of CR rates:" << endl;
-    for(int i = 2 ; i < totalFiles ; ++i)
+    while(!CRforPrinting.empty())
     {
 
         std::cout << std::fixed;
         std::cout << std::setprecision(2);
-        cout << CRforPrinting.at(i-2) << endl;
+        cout << CRforPrinting.at(CRforPrinting.size()-1) << endl;
+        CRforPrinting.pop_back();
     }
     return 0;
 }
@@ -239,20 +246,20 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
     // loop through all dataColumns
     for(int i = 0 ; i < dataColumns ; ++i)
     {
-        // split data in blocks of size 264 samples (e.g. 528 bytes)
+        // take only the values from the i column
         for(int j = 0 ; j < blocksize ; ++j)
         {
-            block.at(j) = Data.at(j + i*dataColumns);
+            block.at(j) = Data.at(i + j*dataColumns);
+//            cout << block.at(j) << endl;
         }
         // initialize first sample
         firstSample = block.at(0);
+//        cout << "firstsample: " << firstSample << endl;
         // calculate differentiated values
         for(int j = 0 ; j < blocksize - 1 ; ++j)
         {
             diffBlock.at(j) = int32_t(int32_t(block.at(j + 1)) - int32_t(block.at(j)));
         }
-
-
         // use mapping function to only have positive values
         for(uint64_t j = 0; j < diffBlock.size() ; ++j)
         {
@@ -393,7 +400,7 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
         }
         else
 //            cout << (filledBits / 8) << endl;
-        temp = 0;
+            temp = 0;
     }
 
     for(int k = 0 ; k < si_Occuring.size(); ++k)
