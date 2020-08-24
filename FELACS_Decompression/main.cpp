@@ -15,12 +15,12 @@ using namespace std;
 /* Decompress Function */
 string* get_Filenames(char* filePath, int totalFiles);
 int get_TotalFiles(char* filePath);
-std::vector<uint16_t> FELACS_Decompress(std::vector<uint8_t> Data_Compressed, int blockSize, int totalSamples);
+std::vector<uint16_t> FELACS_Decompress(std::vector<uint8_t> Data_Compressed, int blockSize, int totalSamples, int dataColumns);
 
 int main()
 {
-    char originalFilePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
-    char compressedFilePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed";
+    char originalFilePath[] = "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(git)/Data_Input_Compression";
+    char compressedFilePath[] = "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(git)/Data_Compressed";
     int totalFilesCompressed = get_TotalFiles(compressedFilePath);
     int totalFilesOriginal = get_TotalFiles(originalFilePath);
     if(totalFilesCompressed == totalFilesOriginal)
@@ -34,6 +34,7 @@ int main()
     }
     /* Variables for compression */
     int blockSize = 265;
+    int dataColumns = 48;
     /* Variables for creating output files */
     ostringstream os_filePath;
     ostringstream os_fileName;
@@ -45,14 +46,14 @@ int main()
     string inputPathOriginal = "";
     string outputFileName = "";
     string outputPath = "";
-   /* Variables for reading files */
+    /* Variables for reading files */
     uint8_t readUint8;
     uint16_t readUint16;
     int16_t readInt16;
 
     fileNamesCompressed = get_Filenames(compressedFilePath, totalFilesCompressed);
     fileNamesOriginal = get_Filenames(originalFilePath, totalFilesOriginal);
-     /* There seems to be an offset of 2 in the read files */
+    /* There seems to be an offset of 2 in the read files */
     for(int i = 2 ; i < totalFilesCompressed ; ++i)
     {
         /* Create vectors to store all data types in */
@@ -128,7 +129,7 @@ int main()
         /* display filename being decompressed */
         std::cout << "File being decompressed: " << inputFileNameCompressed << endl;
         /* Decompress file */
-        Data_Decompressed = FELACS_Decompress(Data_Compressed, blockSize, Data_Original_Uint16.size());
+        Data_Decompressed = FELACS_Decompress(Data_Compressed, blockSize, Data_Original_Uint16.size(), dataColumns);
         /* Check if data is the same */
         if(Data_Decompressed.size() == Data_Original_Uint16.size())
         {
@@ -150,7 +151,7 @@ int main()
         outputPath = "";
         os_filePath.str("");
         os_filePath.clear();
-        os_filePath << "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++/Data_Decompressed/Decompressed_" << fileNamesOriginal[i];
+        os_filePath << "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(git)/Data_Decompressed/Decompressed_" << fileNamesOriginal[i];
         outputPath =  os_filePath.str();
         cout << outputPath << endl;
         std::ofstream outputFile(outputPath, std::ios::out | std::ofstream::binary);
@@ -170,7 +171,7 @@ int main()
                 outputFile.write(reinterpret_cast<const char *>(&Data_Decompressed[i]), sizeof(Data_Decompressed[i]));
             }
         }
-          cout << "decompression succes!!" << endl;
+        cout << "decompression succes!!" << endl;
 
     }
 
@@ -265,10 +266,13 @@ int get_TotalFiles(char* filePath)
     return totalFiles;
 }
 
-std::vector<uint16_t> FELACS_Decompress(std::vector<uint8_t> Data_Compressed, int blockSize, int totalSamples)
+std::vector<uint16_t> FELACS_Decompress(std::vector<uint8_t> Data_Compressed, int blockSize, int totalSamples, int dataColumns)
 {
     cout << "begin decompress" << endl;
     std::vector<uint16_t> Data_Decompressed;
+    std::vector<uint16_t> Data_Decompressed_temp;
+    Data_Decompressed.reserve(totalSamples);
+    Data_Decompressed_temp.reserve(totalSamples);
     uint16_t firstSample;
     uint16_t k_optimal;
     uint64_t filledBits;
@@ -282,92 +286,115 @@ std::vector<uint16_t> FELACS_Decompress(std::vector<uint8_t> Data_Compressed, in
     int8_t lengthai;
 
     int offset = 0;
-    for(int i = 0 ; i < (totalSamples/blockSize) ; ++i)
+
+    for(int i = 0 ; i < (totalSamples/(blockSize*dataColumns)) ; ++i)
     {
-        filledBits = 0;
-        firstSample = (Data_Compressed.at(offset + 1) << 8) + Data_Compressed.at(offset + 0);
-        Data_Decompressed.push_back(firstSample);
-        k_optimal = (Data_Compressed.at(offset + 2) & 0x07);
-        //cout << "k" << k_optimal << " | " << firstSample << endl;
-        filledBits += 3 + 8*2;
-        for(int j = 0 ; j < blockSize-1 ; ++j)
+        for(int l = 0 ; l < dataColumns; l++)
         {
-            si = 0;
-            ai = 0;
-            while((Data_Compressed.at(offset + (filledBits / 8)) & (1 << (filledBits % 8))) == 0 )
+            filledBits = 0;
+            firstSample = (Data_Compressed.at(offset + 1) << 8) + Data_Compressed.at(offset + 0);
+            Data_Decompressed.push_back(firstSample);
+            k_optimal = (Data_Compressed.at(offset + 2) & 0x07);
+            //cout << "k" << k_optimal << " | " << firstSample << endl;
+            filledBits += 3 + 8*2;
+            for(int j = 0 ; j < blockSize-1 ; ++j)
             {
+                si = 0;
+                ai = 0;
+                while((Data_Compressed.at(offset + (filledBits / 8)) & (1 << (filledBits % 8))) == 0 )
+                {
+                    si += 1;
+                    filledBits += 1;
+                }
+                // zero detected hence si is increased one and filledBits to
                 si += 1;
                 filledBits += 1;
-            }
-            // zero detected hence si is increased one and filledBits to
-            si += 1;
-            filledBits += 1;
-            if(si >= 2 )
-            {
-                lengthai = k_optimal+si-2;
-            }
-            else
-            {
-                lengthai = k_optimal;
-            }
-            for(int k = 0 ; k < lengthai ; ++k)
-            {
-                int tempOffset = filledBits / 8;
-                // check if a 0 or 1 is in the j'bit of Compressed
-                if((Data_Compressed.at(offset + tempOffset) & (1 << (filledBits % 8))) != 0 )
+                if(si >= 2 )
                 {
-                    ai += (1 << k);
-                }
-                filledBits += 1;
-            }
-            // reverse engineer
-            if(si == 1)
-            {
-                temp = ai;
-            }
-            else
-            {
-                temp = pow(2,k_optimal + si - 2) + ai;
-            }
-
-
-            // inversed function
-            omega = int32_t(std::min(int32_t(Data_Decompressed.at(j + i*blockSize)), int32_t(pow(2,N) - 1 - Data_Decompressed.at(j + i*blockSize))));
-            lastElement = Data_Decompressed.at(j + i*blockSize);
-            //if(k_optimal == 7 && si == 10) cout << "omega: " << omega << " | lengthai: " << float(lengthai)  << " | temp: " << temp << " | lastelement: " << lastElement  << endl;
-            if(temp <= 2*omega)
-            {
-                if((temp % 2) == 1)
-                {
-                    increase = -int32_t((temp + 1)/2);
+                    lengthai = k_optimal+si-2;
                 }
                 else
                 {
-                    increase = int32_t(temp/2);
+                    lengthai = k_optimal;
                 }
-            }
-            else
-            {
-                if(lastElement < uint16_t(pow(2,(N-1))))
+                for(int k = 0 ; k < lengthai ; ++k)
                 {
-                    increase = temp-omega;
+                    int tempOffset = filledBits / 8;
+                    // check if a 0 or 1 is in the j'bit of Compressed
+                    if((Data_Compressed.at(offset + tempOffset) & (1 << (filledBits % 8))) != 0 )
+                    {
+                        ai += (1 << k);
+                    }
+                    filledBits += 1;
+                }
+                // reverse engineer
+                if(si == 1)
+                {
+                    temp = ai;
                 }
                 else
                 {
-                    increase = -(temp-omega);
+                    temp = pow(2,k_optimal + si - 2) + ai;
                 }
-            }
-            Data_Decompressed.push_back(uint16_t(int32_t(lastElement) + increase)); //insert delta on top of offset
+
+
+                // inversed function
+                omega = int32_t(std::min(int32_t(Data_Decompressed.at(j + l*blockSize + i*blockSize*dataColumns)), int32_t(pow(2,N) - 1 - Data_Decompressed.at(j + l*blockSize + i*blockSize*dataColumns))));
+                lastElement = Data_Decompressed.at(j + l*blockSize + i*blockSize*dataColumns);
+                //if(k_optimal == 7 && si == 10) cout << "omega: " << omega << " | lengthai: " << float(lengthai)  << " | temp: " << temp << " | lastelement: " << lastElement  << endl;
+                if(temp <= 2*omega)
+                {
+                    if((temp % 2) == 1)
+                    {
+                        increase = -int32_t((temp + 1)/2);
+                    }
+                    else
+                    {
+                        increase = int32_t(temp/2);
+                    }
+                }
+                else
+                {
+                    if(lastElement < uint16_t(pow(2,(N-1))))
+                    {
+                        increase = temp-omega;
+                    }
+                    else
+                    {
+                        increase = -(temp-omega);
+                    }
+                }
+                Data_Decompressed.push_back(uint16_t(int32_t(lastElement) + increase)); //insert delta on top of offset
 //                if(j + i*blockSize > 28300 && j + i*blockSize < 28500)
 //                cout << (j + i*blockSize) <<  "|    k" << k_optimal << " | " << firstSample << " | " << "si: " << si << " | " << "ai: " << ai << "  |  " << "lastelement: " << lastElement << "   |   "  << "increase: " << increase << "   |   " << "omega: " << omega <<  endl;
+            }
+            if((filledBits % 8) != 0)
+            {
+                offset += (filledBits / 8) + 1;
+            }
+            else
+            {
+                offset += (filledBits / 8);
+            }
         }
-        if((filledBits % 8) != 0)
+    }
+    for (int32_t i=0; i<int32_t(Data_Decompressed.size()); i++)
+    {
+        Data_Decompressed_temp.push_back(Data_Decompressed[i]);
+//        cout << i << "|     " << Data_Decompressed[i] << endl;
+    }
+
+    /* Transpose the blocks */
+    for(int i = 0; i < (totalSamples/(blockSize*dataColumns)) ; ++i)
+    {
+        for(int j = 0; j < blockSize; ++j)
         {
-            offset += (filledBits / 8) + 1;
-        }
-        else
-        {
-            offset += (filledBits / 8);
+            for(int k = 0; k < dataColumns; ++k)
+            {
+//                cout << "before: " << Data_Decompressed.at(k + j*blockSize + i*blockSize*dataColumns) << endl;
+                Data_Decompressed.at(k + j*dataColumns + i*blockSize*dataColumns) = Data_Decompressed_temp.at(k*blockSize + j + i*blockSize*dataColumns);
+//               cout << "after: " << Data_Decompressed.at(k + j*blockSize + i*blockSize*dataColumns) << "| "<< (k*blockSize + j +  i*blockSize*dataColumns) <<  endl;
+            }
         }
     }
     return Data_Decompressed;
