@@ -14,7 +14,7 @@ using namespace std;
 /* Function delcerations */
 std::vector<uint16_t> temperatureConversion(std::vector<double> Temp_F);
 std::vector<uint64_t> pdf(std::vector<uint16_t> Data, int byteRange);
-std::vector<uint8_t> FELACS(std::vector<uint16_t> Data, int blocksize, int N, int dataColumns);
+std::vector<uint8_t> FELACS(std::vector<uint16_t> Data, int blocksize, int N, int dataColumns, int session);
 double entropy(std::vector<uint64_t> Data);
 int get_TotalFiles(char* filePath);
 string* get_Filenames(char* filePath, int totalFiles);
@@ -41,7 +41,7 @@ int main()
     std::vector<double> CRforPrinting;
     /* Read files from filepath , select laptop or desktop*/
 //    char filePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
-    char filePath[] = "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
+    char filePath[] = "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Input_Compression";
     int totalFiles = get_TotalFiles(filePath);
 
     /* get all filenames from the given filepath */
@@ -70,7 +70,7 @@ int main()
         os_fileName.clear();
         outputPath = "";
 //        os_filePath << "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed/Compressed_" << fileNames[i];
-        os_filePath << "C:/Users/basti/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed/Compressed_" << fileNames[i];
+        os_filePath << "C:/Users/User/OneDrive/THESIS/2_Compression_Algorithms/C++(Git)/Data_Compressed/Compressed_" << fileNames[i];
         outputPath =  os_filePath.str();
         os_fileName << fileNames[i] << "_ofile";
         cout << "created: Compressed_" << fileNames[i] << " | in: " << outputPath << endl;
@@ -126,7 +126,7 @@ int main()
                 {
                     Data_uint16_temp.push_back(Data_uint16.at(k + j*offset));
                 }
-                FELACS_Compressed = FELACS(Data_uint16_temp, blockSize, 16, dataColumns);
+                FELACS_Compressed = FELACS(Data_uint16_temp, blockSize, 16, dataColumns, j);
                 /* Calculate compression ratio */
                 Data_CR = (1 - (double(FELACS_Compressed.size())) / (double(Data_uint16_temp.size()*2)))*100;
 //                cout << "Compression Ration: " << Data_CR << "%" << endl;
@@ -219,7 +219,7 @@ string* get_Filenames(char* filePath, int totalFiles)
 }
 
 /* this function should take a 265 x dataColumns long vector and compress it */
-std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, int dataColumns)
+std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, int dataColumns, int session)
 {
 //    int totalBlocks = int (floor( double (Data.size()) / blocksize));
     std::vector<uint16_t> block(blocksize);
@@ -239,49 +239,50 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
     uint16_t ai;
     uint8_t lengthai;
     int extraBits = 0;
+    int diffBlockSize = blocksize - 1;
     // loop through all dataColumns
     for(int i = 0 ; i < dataColumns ; ++i)
     {
         // take only the values from the i column
         for(int32_t j = 0 ; j < blocksize ; ++j)
         {
-            block.at(j) = Data.at(i + j*dataColumns);
+            block[j] = Data[i + j*dataColumns];
 //            cout << block.at(j) << endl;
         }
         // initialize first sample
-        firstSample = block.at(0);
+        firstSample = block[0];
 //        cout << "firstsample: " << firstSample << endl;
         // calculate differentiated values
         for(int32_t j = 0 ; j < blocksize - 1 ; ++j)
         {
-            diffBlock.at(j) = int32_t(int32_t(block.at(j + 1)) - int32_t(block.at(j)));
+            diffBlock[j] = int32_t(int32_t(block[j + 1]) - int32_t(block[j]));
         }
         // use mapping function to only have positive values
-        for(int32_t j = 0; j < int32_t(diffBlock.size()) ; ++j)
+        for(int32_t j = 0; j < int32_t(diffBlockSize) ; ++j)
         {
-            omega = int32_t(std::min(int32_t(block.at(j)), int32_t(pow(2,N) - 1 - block.at(j))));
+            omega = int32_t(std::min(int32_t(block[j]), int32_t((uint16_t(1) << N) - 1 - block[j])));
 //             if(j + i*blocksize > 28300 && j + i*blocksize < 28500)
 //                cout << (j + i*blocksize) << " |      omega: " << omega << endl;
 
-            if(0 <= diffBlock.at(j) && diffBlock.at(j) <= omega)
+            if(0 <= diffBlock[j] && diffBlock[j] <= omega)
             {
-                diffBlockConv.at(j) = 2*diffBlock.at(j);
+                diffBlockConv[j] = 2*diffBlock[j];
             }
-            else if(-omega <= diffBlock.at(j) && diffBlock.at(j) < 0)
+            else if(-omega <= diffBlock[j] && diffBlock[j] < 0)
             {
-                diffBlockConv.at(j) = 2*abs(diffBlock.at(j)) - 1;
+                diffBlockConv[j] = 2*abs(diffBlock[j]) - 1;
             }
             else
             {
-                diffBlockConv.at(j) = omega + uint32_t(abs(diffBlock.at(j)));
+                diffBlockConv[j] = omega + uint32_t(abs(diffBlock[j]));
             }
 
         }
         // calculate optimum value of k using the value D
         D = 0;
-        for(uint32_t j = 0 ; j < diffBlockConv.size() ; ++j)
+        for(uint32_t j = 0 ; j < diffBlockSize ; ++j)
         {
-            D += diffBlockConv.at(j);
+            D += diffBlockConv[j];
         }
         k = 0;
         if(D < 2*diffBlockConv.size())
@@ -290,12 +291,12 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
         {
             for(k = 1 ; k < 7 ; ++k)
             {
-                if(pow(2,k) * diffBlockConv.size() < D && D <= pow(2,k+1)*diffBlockConv.size())
+                if((diffBlockSize << k) < D && D <= (diffBlockSize << (k+1)))
                 {
                     k_optimal = k;
                 }
             }
-            if(128 * diffBlockConv.size() < D)
+            if(128 * diffBlockSize < D)
             {
                 k_optimal = 7;
             }
@@ -308,13 +309,13 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
         temp = k_optimal;
         filledBits += 3;
         // save rest of the data points in structure << si, ai >>
-        for(int32_t j = 0 ; j < int32_t(diffBlockConv.size()) ; ++j)
+        for(int32_t j = 0 ; j < int32_t(diffBlockSize) ; ++j)
         {
             // log(0) will give an error, thus diffBlockConv should be > 0.
             // next calculate the value of si and store these in compressed
-            if(diffBlockConv.at(j) > 0)
+            if(diffBlockConv[j] > 0)
             {
-                si = floor(log2(diffBlockConv.at(j))) - k_optimal + 2;
+                si = floor(log2(diffBlockConv[j])) - k_optimal + 2;
                 if(si < 1)
                 {
                     si = 1;
@@ -349,14 +350,19 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
                     temp = 0;
                 }
             }
-            si_Occuring.at(si) += 1; // debugging purposes!!
+            // analytical purposes only
+            if(session == 3)
+            {
+                  //cout << si << endl;
+            }
+            si_Occuring[si] += 1; // debugging purposes!!
             if(si == 1)
             {
-                ai = diffBlockConv.at(j);
+                ai = diffBlockConv[j];
             }
             else
             {
-                ai = diffBlockConv.at(j) - pow(2,k_optimal + si - 2);
+                ai = diffBlockConv[j] - (1 << (k_optimal + si - 2));
             }
             // write ai to compressed
             if(si >= 2 )
@@ -402,7 +408,7 @@ std::vector<uint8_t> FELACS (std::vector<uint16_t> Data, int blocksize, int N, i
     for(uint32_t k = 0 ; k < si_Occuring.size(); ++k)
     {
         //cout << k << " | " << si_Occuring.at(k) << endl;
-        cout << si_Occuring.at(k) << endl;
+        cout << si_Occuring[k] << endl;
     }
     std::cerr << "Out of Felacs" << endl;
     cout << "extra-bits " << extraBits << endl;
